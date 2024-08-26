@@ -1,1 +1,6 @@
 yfinance
+streamlit
+yfinance
+pandas
+plotly
+st_aggrid
