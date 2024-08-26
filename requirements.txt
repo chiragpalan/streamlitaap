@@ -2,5 +2,5 @@ yfinance
 streamlit
 yfinance
 pandas
-plotly
-st_aggrid
+plotly == 5.23.0
+streamlit-aggrid == 1.0.5
