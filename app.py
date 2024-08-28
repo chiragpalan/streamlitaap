@@ -8,7 +8,7 @@ import plotly.graph_objs as go
 st.cache.clear()
 
 # Load Data for Top 100 Nifty Stocks
-@st.cache_data
+@st.cache_resource
 def load_data():
     tickers = [
         "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "HINDUNILVR.NS",
