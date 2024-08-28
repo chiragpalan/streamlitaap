@@ -126,3 +126,4 @@ if selected_stock:
     )
 
     st.plotly_chart(fig)
+
