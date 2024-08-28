@@ -3,24 +3,31 @@ import pandas as pd
 import yfinance as yf
 from datetime import datetime, timedelta
 from st_aggrid import AgGrid, GridOptionsBuilder
-from st_aggrid.shared import GridUpdateMode
+from st_aggrid.shared import GridUpdateMode, DataReturnMode
 import plotly.graph_objs as go
 
 # Load Data for Top 100 Nifty Stocks
-@st.cache_resource
+@st.cache_data
 def load_data():
-    tickers = ["RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "HINDUNILVR.NS",
-    "ICICIBANK.NS", "KOTAKBANK.NS", "SBIN.NS", "BAJFINANCE.NS", "BHARTIARTL.NS",
-    "ITC.NS", "ASIANPAINT.NS", "HCLTECH.NS", "MARUTI.NS", "AXISBANK.NS",
-    "LT.NS", "HDFCLIFE.NS", "SUNPHARMA.NS", "ULTRACEMCO.NS", "NESTLEIND.NS",
-    "TITAN.NS", "WIPRO.NS", "BAJAJFINSV.NS", "ADANIGREEN.NS", "ADANIPORTS.NS",
-    "DIVISLAB.NS", "JSWSTEEL.NS", "POWERGRID.NS", "NTPC.NS", "TATAMOTORS.NS",
-    "GRASIM.NS", "TECHM.NS", "HINDALCO.NS", "BPCL.NS", "SHREECEM.NS",
-    "ONGC.NS", "COALINDIA.NS", "BRITANNIA.NS", "HEROMOTOCO.NS", "DRREDDY.NS",
-    "CIPLA.NS", "BAJAJ-AUTO.NS", "M&M.NS", "SBILIFE.NS", "EICHERMOT.NS",
-    "UPL.NS", "TATASTEEL.NS", "IOC.NS", "INDUSINDBK.NS", "VEDL.NS"]
+    tickers = [
+        "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "HINDUNILVR.NS",
+        "ICICIBANK.NS", "KOTAKBANK.NS", "SBIN.NS", "BAJFINANCE.NS", "BHARTIARTL.NS",
+        "ITC.NS", "ASIANPAINT.NS", "HCLTECH.NS", "MARUTI.NS", "AXISBANK.NS",
+        "LT.NS", "HDFCLIFE.NS", "SUNPHARMA.NS", "ULTRACEMCO.NS", "NESTLEIND.NS",
+        "TITAN.NS", "WIPRO.NS", "BAJAJFINSV.NS", "ADANIGREEN.NS", "ADANIPORTS.NS",
+        "DIVISLAB.NS", "JSWSTEEL.NS", "POWERGRID.NS", "NTPC.NS", "TATAMOTORS.NS",
+        "GRASIM.NS", "TECHM.NS", "HINDALCO.NS", "BPCL.NS", "SHREECEM.NS",
+        "ONGC.NS", "COALINDIA.NS", "BRITANNIA.NS", "HEROMOTOCO.NS", "DRREDDY.NS",
+        "CIPLA.NS", "BAJAJ-AUTO.NS", "M&M.NS", "SBILIFE.NS", "EICHERMOT.NS",
+        "UPL.NS", "TATASTEEL.NS", "IOC.NS", "INDUSINDBK.NS", "VEDL.NS"  # Add all 100 tickers
+    ]
     stock_data = {ticker: yf.download(ticker, start="2020-01-01", end=datetime.today().strftime('%Y-%m-%d')) for ticker in tickers}
     return stock_data
+
+# Refresh button to clear cache and rerun
+if st.button("Refresh Data"):
+    st.cache_data.clear()  # Clear the cached data
+    st.experimental_rerun()  # Rerun the app to fetch new data
 
 data = load_data()
 
@@ -50,35 +57,29 @@ filtered_df = filter_and_add_indicators(data)
 filtered_df['Market Cap'] = filtered_df['Ticker'].map(lambda ticker: yf.Ticker(ticker).info['marketCap'])
 filtered_df.reset_index(drop=True, inplace=True)  # Reset index so that Ticker becomes a column
 
-# Filter Option
-filter_option = st.selectbox("Filter Stocks", options=["All", "Above Moving Averages", "Below Moving Averages"])
-
-if filter_option == "Above Moving Averages":
-    filtered_df = filtered_df[
-        (filtered_df['CMP > 50d MA'] == 1) & 
-        (filtered_df['CMP > 200d MA'] == 1) & 
-        (filtered_df['CMP > 50d EMA'] == 1) & 
-        (filtered_df['CMP > 200d EMA'] == 1)
-    ]
-elif filter_option == "Below Moving Averages":
-    filtered_df = filtered_df[
-        (filtered_df['CMP > 50d MA'] == 0) & 
-        (filtered_df['CMP > 200d MA'] == 0) & 
-        (filtered_df['CMP > 50d EMA'] == 0) & 
-        (filtered_df['CMP > 200d EMA'] == 0)
-    ]
-
-# Display using AgGrid with filters, sorting enabled, showing all rows, and pinning Ticker to the left
+# AgGrid options with filters enabled and sorting
 gb = GridOptionsBuilder.from_dataframe(filtered_df)
 gb.configure_pagination(enabled=False)  # Disable pagination to show all rows
 gb.configure_default_column(filter=True, sortable=True)  # Enable filtering and sorting on all columns
 gb.configure_column("Ticker", pinned='left')  # Pin Ticker column to the left
 grid_options = gb.build()
-AgGrid(filtered_df, gridOptions=grid_options, update_mode=GridUpdateMode.SELECTION_CHANGED)
 
-# Visualization for Selected Stock
+# Display using AgGrid with filters, sorting enabled
+response = AgGrid(
+    filtered_df,
+    gridOptions=grid_options,
+    update_mode=GridUpdateMode.SELECTION_CHANGED,
+    data_return_mode=DataReturnMode.FILTERED_AND_SORTED,
+    enable_enterprise_modules=True
+)
+
+# Get the filtered data from AgGrid
+filtered_df_aggrid = pd.DataFrame(response['data'])  # Filtered data
+
+# Visualization for Selected Stock from Filtered Data
 st.write("Select a stock to visualize")
-selected_stock = st.selectbox("Select Stock", options=data.keys())
+filtered_tickers = filtered_df_aggrid['Ticker'].unique().tolist()  # Update dropdown with filtered tickers
+selected_stock = st.selectbox("Select Stock", options=filtered_tickers)
 
 if selected_stock:
     df = data[selected_stock]
