@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from st_aggrid import AgGrid, GridOptionsBuilder
 from st_aggrid.shared import GridUpdateMode, DataReturnMode
 import plotly.graph_objs as go
+st.cache.clear()
 
 # Load Data for Top 100 Nifty Stocks
 @st.cache_data
