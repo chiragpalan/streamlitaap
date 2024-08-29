@@ -27,7 +27,7 @@ def load_data():
 # Refresh button to clear cache and rerun
 if st.button("Refresh Data"):
     st.cache_data.clear()  # Clear the cached data
-    st.experimental_rerun()  # Rerun the app to fetch new data
+    st.rerun()  # Rerun the app to fetch new data
 
 data = load_data()
 
