@@ -5,7 +5,9 @@ from datetime import datetime, timedelta
 from st_aggrid import AgGrid, GridOptionsBuilder
 from st_aggrid.shared import GridUpdateMode, DataReturnMode
 import plotly.graph_objs as go
+
 st.cache_resource.clear()
+
 # Load Data for Top 100 Nifty Stocks
 @st.cache_resource
 def load_data():
@@ -31,10 +33,22 @@ if st.button("Refresh Data"):
 
 data = load_data()
 
+# Calculate Pivot Points
+def calculate_pivot_points(df):
+    df['Pivot'] = (df['High'] + df['Low'] + df['Close']) / 3
+    df['R1'] = 2 * df['Pivot'] - df['Low']
+    df['S1'] = 2 * df['Pivot'] - df['High']
+    df['R2'] = df['Pivot'] + (df['High'] - df['Low'])
+    df['S2'] = df['Pivot'] - (df['High'] - df['Low'])
+    df['R3'] = df['High'] + 2 * (df['Pivot'] - df['Low'])
+    df['S3'] = df['Low'] - 2 * (df['High'] - df['Pivot'])
+    return df
+
 # Filter and Add Indicators
 def filter_and_add_indicators(data, cmp_column='Close'):
     filtered_data = []
     for ticker, df in data.items():
+        df = calculate_pivot_points(df)
         df['50d_MA'] = df[cmp_column].rolling(window=50).mean()
         df['200d_MA'] = df[cmp_column].rolling(window=200).mean()
         df['50d_EMA'] = df[cmp_column].ewm(span=50, adjust=False).mean()
@@ -46,6 +60,22 @@ def filter_and_add_indicators(data, cmp_column='Close'):
         latest_data['CMP > 200d MA'] = 1 if latest_data[cmp_column] > latest_data['200d_MA'] else 0
         latest_data['CMP > 50d EMA'] = 1 if latest_data[cmp_column] > latest_data['50d_EMA'] else 0
         latest_data['CMP > 200d EMA'] = 1 if latest_data[cmp_column] > latest_data['200d_EMA'] else 0
+        #adding support and resistance comparsion
+        latest_data['CMP > S1'] = 1 if latest_data[cmp_column] > latest_data['S1'] else 0
+        latest_data['CMP > S2'] = 1 if latest_data[cmp_column] > latest_data['S2'] else 0
+        latest_data['CMP > S3'] = 1 if latest_data[cmp_column] > latest_data['S3'] else 0
+        latest_data['CMP > R1'] = 1 if latest_data[cmp_column] > latest_data['R1'] else 0
+        latest_data['CMP > R2'] = 1 if latest_data[cmp_column] > latest_data['R2'] else 0
+        latest_data['CMP > R3'] = 1 if latest_data[cmp_column] > latest_data['R3'] else 0
+
+        latest_data['CMP < S1'] = 1 if latest_data[cmp_column] < latest_data['S1'] else 0
+        latest_data['CMP < S2'] = 1 if latest_data[cmp_column] < latest_data['S2'] else 0
+        latest_data['CMP < S3'] = 1 if latest_data[cmp_column] < latest_data['S3'] else 0
+        latest_data['CMP < R1'] = 1 if latest_data[cmp_column] < latest_data['R1'] else 0
+        latest_data['CMP < R2'] = 1 if latest_data[cmp_column] < latest_data['R2'] else 0
+        latest_data['CMP < R3'] = 1 if latest_data[cmp_column] < latest_data['R3'] else 0
+        
+
         
         latest_data['Ticker'] = ticker  # Add ticker as a column
         filtered_data.append(latest_data)
@@ -118,6 +148,15 @@ if selected_stock:
     if show_200d_ema:
         fig.add_trace(go.Scatter(x=df_filtered.index, y=df_filtered['200d_EMA'], name="200-Day EMA", line=dict(dash='dot')))
 
+    # Add Pivot Points to the chart
+    fig.add_trace(go.Scatter(x=df_filtered.index, y=df_filtered['Pivot'], name="Pivot", line=dict(color='blue', dash='dash')))
+    fig.add_trace(go.Scatter(x=df_filtered.index, y=df_filtered['R1'], name="R1", line=dict(color='green', dash='dash')))
+    fig.add_trace(go.Scatter(x=df_filtered.index, y=df_filtered['S1'], name="S1", line=dict(color='red', dash='dash')))
+    fig.add_trace(go.Scatter(x=df_filtered.index, y=df_filtered['R2'], name="R2", line=dict(color='green', dash='dot')))
+    fig.add_trace(go.Scatter(x=df_filtered.index, y=df_filtered['S2'], name="S2", line=dict(color='red', dash='dot')))
+    fig.add_trace(go.Scatter(x=df_filtered.index, y=df_filtered['R3'], name="R3", line=dict(color='green', dash='dashdot')))
+    fig.add_trace(go.Scatter(x=df_filtered.index, y=df_filtered['S3'], name="S3", line=dict(color='red', dash='dashdot')))
+
     fig.update_layout(
         yaxis=dict(title="CMP"),
         yaxis2=dict(title="Volume", overlaying="y", side="right"),
@@ -126,4 +165,3 @@ if selected_stock:
     )
 
     st.plotly_chart(fig)
-
