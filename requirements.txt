@@ -5,3 +5,4 @@ pandas
 plotly == 5.23.0
 streamlit-aggrid == 1.0.5
 tensorflow == 2.17.0
+scikit-learn == 1.5.1
