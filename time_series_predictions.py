@@ -5,7 +5,13 @@ import streamlit as st
 import plotly.express as px
 
 # Constants
-DATA_DB = 'predictions_v1.db'  # Adjust the path if the database is in a folder
+DATA_DB = 'predictions_v1.db'  # Adjust the path if necessary
+
+# Verify if database file exists
+if os.path.exists(DATA_DB):
+    st.success(f"Database '{DATA_DB}' found.")
+else:
+    st.error(f"Database '{DATA_DB}' not found. Please check the file path.")
 
 # Function to load data from a specified table
 def load_data_from_table(table_name):
@@ -28,6 +34,7 @@ st.title("Database Visualization App")
 
 # Load table names
 tables = get_table_names()
+st.write("Available Tables:", tables)  # Debugging: Display table names
 selected_table = st.selectbox("Select Table", tables)
 
 if selected_table:
