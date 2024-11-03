@@ -4,6 +4,7 @@ import pandas as pd
 import requests
 import streamlit as st
 import plotly.express as px
+import plotly.graph_objects as go
 
 # Constants
 DATA_DB = 'predictions_v1.db'
@@ -51,22 +52,57 @@ if selected_table:
     st.write(f"Displaying data for table: {selected_table}")
     st.dataframe(df)
 
+    # Ensure the Date column is in datetime format and drop rows with null dates
+    if 'Date' in df.columns:
+        df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+        df = df.dropna(subset=['Date'])  # Drop rows where Date is NaT (null)
+
     # Select columns to visualize
     selected_columns = st.multiselect("Select Columns to Visualize", options=df.columns)
 
-    if selected_columns:
-        # Interactive line chart
+    if selected_columns and 'Date' in df.columns:
+        # Interactive line chart with range slider
         if st.checkbox("Show Line Chart"):
-            if 'Date' in df.columns:
-                fig = px.line(df, x='Date', y=selected_columns, title='Line Chart')
-                st.plotly_chart(fig)
-            else:
-                st.warning("The selected table does not have a 'Date' column for line chart.")
+            fig = px.line(df, x='Date', y=selected_columns, title='Line Chart')
+            fig.update_layout(
+                xaxis=dict(
+                    rangeselector=dict(
+                        buttons=list([
+                            dict(count=1, label="1m", step="month", stepmode="backward"),
+                            dict(count=6, label="6m", step="month", stepmode="backward"),
+                            dict(count=1, label="YTD", step="year", stepmode="todate"),
+                            dict(count=1, label="1y", step="year", stepmode="backward"),
+                            dict(step="all")
+                        ])
+                    ),
+                    rangeslider=dict(visible=True),
+                    type="date"
+                ),
+                width=1000,
+                height=600
+            )
+            st.plotly_chart(fig)
 
-        # Interactive bar chart
+        # Interactive bar chart with range slider
         if st.checkbox("Show Bar Chart"):
-            if 'Date' in df.columns:
-                fig = px.bar(df, x='Date', y=selected_columns, title='Bar Chart')
-                st.plotly_chart(fig)
-            else:
-                st.warning("The selected table does not have a 'Date' column for bar chart.")
+            fig = px.bar(df, x='Date', y=selected_columns, title='Bar Chart')
+            fig.update_layout(
+                xaxis=dict(
+                    rangeselector=dict(
+                        buttons=list([
+                            dict(count=1, label="1m", step="month", stepmode="backward"),
+                            dict(count=6, label="6m", step="month", stepmode="backward"),
+                            dict(count=1, label="YTD", step="year", stepmode="todate"),
+                            dict(count=1, label="1y", step="year", stepmode="backward"),
+                            dict(step="all")
+                        ])
+                    ),
+                    rangeslider=dict(visible=True),
+                    type="date"
+                ),
+                width=1000,
+                height=600
+            )
+            st.plotly_chart(fig)
+    else:
+        st.warning("Please select at least one column and ensure 'Date' column is available for visualization.")
