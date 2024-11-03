@@ -37,27 +37,12 @@ if selected_table:
 
     # Check if 'Date' column exists and convert to datetime
     if 'Date' in df.columns:
-        # Convert Date column to datetime, handling errors if any non-date values exist
         df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
-        df = df.dropna(subset=['Date'])  # Drop rows where Date conversion failed
+        df = df.dropna(subset=['Date'])
 
-        # Verify if Date column contains valid datetime values
+        # Filtered date range for the entire dataset
         if not df['Date'].empty:
             min_date, max_date = df['Date'].min(), df['Date'].max()
-            
-            # Ensure min_date and max_date are of type datetime
-            if isinstance(min_date, pd.Timestamp) and isinstance(max_date, pd.Timestamp):
-                selected_date_range = st.slider(
-                    "Select Date Range:",
-                    min_value=min_date.to_pydatetime(),
-                    max_value=max_date.to_pydatetime(),
-                    value=(min_date.to_pydatetime(), max_date.to_pydatetime())
-                )
-                
-                # Filter data based on selected date range
-                df = df[(df['Date'] >= selected_date_range[0]) & (df['Date'] <= selected_date_range[1])]
-            else:
-                st.error("Invalid date range detected in 'Date' column.")
         else:
             st.warning("No valid dates found in 'Date' column.")
     
@@ -69,11 +54,39 @@ if selected_table:
         # Interactive line chart
         if st.checkbox("Show Line Chart"):
             fig = px.line(df, x='Date', y=selected_columns, title='Line Chart')
-            fig.update_layout(height=600)  # Increase chart area height
+            fig.update_layout(
+                height=600,
+                xaxis=dict(
+                    rangeslider=dict(visible=True),  # Add range slider below the chart
+                    rangeselector=dict(  # Add predefined range selectors
+                        buttons=list([
+                            dict(count=1, label="1m", step="month", stepmode="backward"),
+                            dict(count=6, label="6m", step="month", stepmode="backward"),
+                            dict(count=1, label="YTD", step="year", stepmode="todate"),
+                            dict(count=1, label="1y", step="year", stepmode="backward"),
+                            dict(step="all")
+                        ])
+                    )
+                )
+            )
             st.plotly_chart(fig, use_container_width=True)
 
         # Interactive bar chart
         if st.checkbox("Show Bar Chart"):
             fig = px.bar(df, x='Date', y=selected_columns, title='Bar Chart')
-            fig.update_layout(height=600)  # Increase chart area height
+            fig.update_layout(
+                height=600,
+                xaxis=dict(
+                    rangeslider=dict(visible=True),
+                    rangeselector=dict(
+                        buttons=list([
+                            dict(count=1, label="1m", step="month", stepmode="backward"),
+                            dict(count=6, label="6m", step="month", stepmode="backward"),
+                            dict(count=1, label="YTD", step="year", stepmode="todate"),
+                            dict(count=1, label="1y", step="year", stepmode="backward"),
+                            dict(step="all")
+                        ])
+                    )
+                )
+            )
             st.plotly_chart(fig, use_container_width=True)
