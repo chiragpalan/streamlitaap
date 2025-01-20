@@ -1,7 +1,7 @@
+
+
 import pandas as pd
 import streamlit as st
-import numpy as np
-import matplotlib.pyplot as plt
 
 # Example DataFrame
 data = {
@@ -13,7 +13,7 @@ data = {
 }
 df = pd.DataFrame(data)
 
-st.title("Interactive Dashboard with Advanced Features")
+st.title("Interactive Dashboard with Waterfall Aggregation")
 
 # User Inputs for Multiple Filters
 st.sidebar.title("Filters")
@@ -101,6 +101,8 @@ waterfall_df = pd.DataFrame(intermediate_results)
 st.write(waterfall_df)
 
 # Optional: Visualizing Waterfall (Bar Chart)
+import matplotlib.pyplot as plt
+
 fig, ax = plt.subplots(figsize=(10, 6))
 ax.bar(waterfall_df['filter'], waterfall_df['count_diff'], label="Count Change", color='blue', alpha=0.6, width=0.5)
 ax.bar(waterfall_df['filter'], waterfall_df['sum_diff'], label="Sum Change", color='orange', alpha=0.6, width=0.5)
@@ -117,32 +119,43 @@ st.subheader("Final Aggregated Results")
 st.write(f"Final count of n_cust: {current_df['n_cust'].sum()}")
 st.write(f"Final sum of target: {current_df['target'].sum()}")
 
-# New Functionality: Binning columns
-st.sidebar.subheader("Binning Columns")
-bin_col = st.sidebar.selectbox("Select Column for Binning", columns, key="bin_col")
-num_bins = st.sidebar.number_input("Number of Bins", min_value=2, max_value=10, value=5)
-bins = np.linspace(current_df[bin_col].min(), current_df[bin_col].max(), num_bins + 1)
-current_df['bin'] = pd.cut(current_df[bin_col], bins, include_lowest=True)
+# Add Calculated Columns
+st.sidebar.title("Calculated Columns")
+
+# User inputs for calculated columns
+calc_col_expr = st.sidebar.text_input("Enter calculation (e.g., col1 * col3)", key="calc_col_expr")
+calc_col_name = st.sidebar.text_input("Enter new column name", key="calc_col_name")
+
+if calc_col_expr and calc_col_name:
+    try:
+        current_df[calc_col_name] = current_df.eval(calc_col_expr)
+        st.sidebar.success(f"Added column '{calc_col_name}'")
+    except Exception as e:
+        st.sidebar.error(f"Error adding column: {e}")
+
+# Display Data with Calculated Columns
+st.subheader("Data with Calculated Columns")
 st.write(current_df)
 
-# New Functionality: Univariate Percentile Distribution
-st.sidebar.subheader("Univariate Percentile Distribution")
-percentile_col = st.sidebar.selectbox("Select Column for Percentile Distribution", columns, key="percentile_col")
-percentiles = np.percentile(current_df[percentile_col], [0, 25, 50, 75, 100])
-st.write(f"Percentiles for {percentile_col}: {percentiles}")
+# Create Pivot Table
+st.sidebar.title("Pivot Table")
 
-# New Functionality: Pivot Table
-st.sidebar.subheader("Pivot Table")
-pivot_index = st.sidebar.selectbox("Pivot Table Index", columns, key="pivot_index")
-pivot_columns = st.sidebar.selectbox("Pivot Table Columns", columns, key="pivot_columns")
-pivot_values = st.sidebar.selectbox("Pivot Table Values", columns, key="pivot_values")
-pivot_table = pd.pivot_table(current_df, values=pivot_values, index=pivot_index, columns=pivot_columns, aggfunc=np.sum)
-st.write(pivot_table)
+# User inputs for pivot table
+pivot_index = st.sidebar.selectbox("Select index column", columns, key="pivot_index")
+pivot_columns = st.sidebar.multiselect("Select columns", columns, key="pivot_columns")
+pivot_values = st.sidebar.selectbox("Select values column", columns, key="pivot_values")
+pivot_aggfunc = st.sidebar.selectbox("Select aggregation function", ['sum', 'mean', 'count'], key="pivot_aggfunc")
 
-# New Functionality: Calculated Column
-st.sidebar.subheader("New Calculated Column")
-new_col_name = st.sidebar.text_input("New Column Name", key="new_col_name")
-new_col_formula = st.sidebar.text_input("Formula (e.g., col1 + col2)", key="new_col_formula")
-if new_col_name and new_col_formula:
-    current_df[new_col_name] = current_df.eval(new_col_formula)
-    st.write(current_df)
+if pivot_index and pivot_columns and pivot_values and pivot_aggfunc:
+    try:
+        pivot_table = pd.pivot_table(
+            current_df,
+            index=pivot_index,
+            columns=pivot_columns,
+            values=pivot_values,
+            aggfunc=pivot_aggfunc
+        )
+        st.subheader("Pivot Table")
+        st.write(pivot_table)
+    except Exception as e:
+        st.sidebar.error(f"Error creating pivot table: {e}")
